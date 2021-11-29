@@ -5,8 +5,8 @@ import path from 'path';
 // 获得当前执行node命令时候的文件夹目录名
 const commandPath = process.cwd();
 
-export default async function loadFile(filePath: string) {
-  return () => {
+export default function loadFile(filePath: string) {
+  return async () => {
     const metaFilePath = path.isAbsolute(filePath)
       ? filePath
       : path.resolve(commandPath, filePath);

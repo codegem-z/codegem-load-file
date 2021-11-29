@@ -5,8 +5,22 @@ import path from 'path';
 // 获得当前执行node命令时候的文件夹目录名
 const commandPath = process.cwd();
 
+export interface FileInfoType {
+  path: string;
+  name: string;
+  root: string;
+  base: string;
+  dir: string;
+  ext: string;
+}
+
+export interface FileType {
+  files: string[];
+  filesInfo: FileInfoType[];
+}
+
 export default function loadFile(filePath: string) {
-  return async () => {
+  return async (): Promise<FileType | null> => {
     const metaFilePath = path.isAbsolute(filePath)
       ? filePath
       : path.resolve(commandPath, filePath);
@@ -19,9 +33,8 @@ export default function loadFile(filePath: string) {
     const files = rd.readFileSync(metaFilePath);
     const result = files.map((filePath) => {
       return {
-        fullPath: filePath,
-        basename: path.basename(filePath),
-        extname: path.extname(filePath),
+        path: filePath,
+        ...path.parse(filePath),
       };
     });
 

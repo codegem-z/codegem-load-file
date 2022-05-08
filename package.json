@@ -1,6 +1,6 @@
 {
   "name": "codegem-load-file",
-  "version": "0.0.7-beta.1",
+  "version": "0.0.7-beta.2",
   "main": "build/mod.js",
   "license": "MIT",
   "registry": "https://github.com/codegem-z/codegem-load-file.git",

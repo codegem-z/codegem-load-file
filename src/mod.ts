@@ -31,6 +31,10 @@ export default function loadFile(filePath: string) {
 
     // 同步
     const files = rd.readFileSync(metaFilePath);
+    // NOTE: 没有文件返回 null
+    if (files.length === 0) {
+      return null;
+    }
     const result = files.map((filePath) => {
       return {
         path: filePath,

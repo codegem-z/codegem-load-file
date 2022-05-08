@@ -1,9 +1,9 @@
 import fs from 'fs-extra';
 import rd from 'rd';
 import path from 'path';
-
-// 获得当前执行node命令时候的文件夹目录名
-const commandPath = process.cwd();
+import md5 from 'crypto-js/md5.js';
+import { commandPath } from './config.js';
+import fileMd5Db from './local.js';
 
 export interface FileInfoType {
   path: string;
@@ -12,6 +12,7 @@ export interface FileInfoType {
   base: string;
   dir: string;
   ext: string;
+  changed: boolean;
 }
 
 export interface FileType {
@@ -36,15 +37,37 @@ export default function loadFile(filePath: string) {
       return null;
     }
     const result = files.map((filePath) => {
+      const fileNewMd5 = md5(fs.readFileSync(filePath, 'utf-8')).toString();
+      const fileCache = fileMd5Db.tables.findOne({
+        where: (it) => it.filepath === filePath,
+      });
+      const isChanged = fileCache ? fileCache.md5 !== fileNewMd5 : true;
+      if (!fileCache) {
+        fileMd5Db.tables.create({ filepath: filePath, md5: fileNewMd5 });
+      }
+      if (isChanged) {
+        fileMd5Db.tables.update({
+          where: (it) => it.filepath === filePath,
+          data: { md5: fileNewMd5 },
+        });
+      }
       return {
         path: filePath,
         ...path.parse(filePath),
+        changed: isChanged,
       };
     });
+    await fileMd5Db.write();
 
     // console.log('debug', metaFilePath, result);
     return { files, filesInfo: result };
   };
 }
 
-// loadFile('./example')();
+loadFile('./example')().then((res) => {
+  console.log(
+    '%c res',
+    'color:white;background: rgb(83,143,204);padding:4px',
+    res,
+  );
+});

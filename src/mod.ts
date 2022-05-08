@@ -18,6 +18,7 @@ export interface FileInfoType {
 export interface FileType {
   files: string[];
   filesInfo: FileInfoType[];
+  deleted: string[];
 }
 
 export default function loadFile(filePath: string) {
@@ -36,6 +37,20 @@ export default function loadFile(filePath: string) {
     if (files.length === 0) {
       return null;
     }
+
+    // NOTE: 判断下删除的文件
+    const filesCache = fileMd5Db.tables.getAll();
+
+    const deleted = filesCache
+      .filter((it) => !files.includes(it.filepath))
+      .map((it) => it.filepath);
+
+    if (deleted.length > 0) {
+      fileMd5Db.tables.deleteMany({
+        where: (it) => deleted.includes(it.filepath),
+      });
+    }
+
     const result = files.map((filePath) => {
       const fileNewMd5 = md5(fs.readFileSync(filePath, 'utf-8')).toString();
       const fileCache = fileMd5Db.tables.findOne({
@@ -60,14 +75,6 @@ export default function loadFile(filePath: string) {
     await fileMd5Db.write();
 
     // console.log('debug', metaFilePath, result);
-    return { files, filesInfo: result };
+    return { files, filesInfo: result, deleted };
   };
 }
-
-loadFile('./example')().then((res) => {
-  console.log(
-    '%c res',
-    'color:white;background: rgb(83,143,204);padding:4px',
-    res,
-  );
-});

@@ -3,7 +3,9 @@ import rd from 'rd';
 import path from 'path';
 import md5 from 'crypto-js/md5.js';
 import { commandPath } from './config.js';
-import fileMd5Db from './local.js';
+import localdb from './local.js';
+
+const fileTables = localdb.tables;
 
 export interface FileInfoType {
   path: string;
@@ -39,40 +41,42 @@ export default function loadFile(filePath: string) {
     }
 
     // NOTE: 判断下删除的文件
-    const filesCache = fileMd5Db.tables.getAll();
+    const filesCache = fileTables.getAll();
 
     const deleted = filesCache
       .filter((it) => !files.includes(it.filepath))
       .map((it) => it.filepath);
 
     if (deleted.length > 0) {
-      fileMd5Db.tables.deleteMany({
+      fileTables.deleteMany({
         where: (it) => deleted.includes(it.filepath),
       });
     }
 
     const result = files.map((filePath) => {
-      const fileNewMd5 = md5(fs.readFileSync(filePath, 'utf-8')).toString();
-      const fileCache = fileMd5Db.tables.findOne({
+      const newMd5 = md5(fs.readFileSync(filePath, 'utf-8')).toString();
+      const files = fileTables.findMany({
         where: (it) => it.filepath === filePath,
       });
-      const isChanged = fileCache ? fileCache.md5 !== fileNewMd5 : true;
-      if (!fileCache) {
-        fileMd5Db.tables.create({ filepath: filePath, md5: fileNewMd5 });
+      let isChanged = false;
+      if (files.length === 1) {
+        const file = files[0];
+        isChanged = file.md5 !== newMd5;
+        if (isChanged) {
+          fileTables.updateById(file.id, { md5: newMd5 });
+        }
+      } else {
+        fileTables.create({ filepath: filePath, md5: newMd5 });
+        isChanged = true;
       }
-      if (isChanged) {
-        fileMd5Db.tables.update({
-          where: (it) => it.filepath === filePath,
-          data: { md5: fileNewMd5 },
-        });
-      }
+
       return {
         path: filePath,
         ...path.parse(filePath),
         changed: isChanged,
       };
     });
-    await fileMd5Db.write();
+    await localdb.write();
 
     // console.log('debug', metaFilePath, result);
     return { files, filesInfo: result, deleted };

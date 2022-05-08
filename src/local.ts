@@ -17,8 +17,8 @@ const md5FilePath = path.resolve(
   './node_modules/.codegem-load-file/md5.json',
 );
 
-const fileMd5Db = new Localdb<{ filepath: string; md5: string }>(md5FilePath, {
+const localdb = new Localdb<{ filepath: string; md5: string }>(md5FilePath, {
   schema: createSchema([md5Model]),
 });
 
-export default fileMd5Db;
+export default localdb;
